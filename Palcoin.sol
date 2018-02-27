@@ -188,11 +188,7 @@ contract PalCoin is owned, TokenERC20 {
     event FrozenFunds(address target, bool frozen);
 
     /* Initializes contract with initial supply tokens to the creator of the contract */
-    function PalCoin(
-        uint256 initialSupply,
-        string tokenName,
-        string tokenSymbol
-    ) TokenERC20(initialSupply, tokenName, tokenSymbol) public {}
+    function PalCoin() TokenERC20(30000000, "PalCoin", "PLC") public {}
 
     /* Internal transfer, only can be called by this contract */
     function _transfer(address _from, address _to, uint _value) internal {
@@ -247,3 +243,157 @@ contract PalCoin is owned, TokenERC20 {
     }
 }
 
+
+pragma solidity ^0.4.16;
+
+interface token {
+    function transfer(address receiver, uint amount);
+}
+
+contract Crowdsale {
+    address public beneficiary;
+    uint public fundingGoal;
+    uint public amountRaised;
+    uint public deadline;
+    uint public price;
+    uint public etap; // 1 - start; 
+
+    uint public point01 = 1522454400; // 31.03 etap = 1;
+    uint public point02 = 1522454400; // 31.03 etap = 2;
+    uint public point03 = 1522540800; // 01.04 etap = 3;
+    uint public point04 = 1522454400; // 31.05 etap = 4;
+    uint public point05 = 1530403200; // 01.07 etap = 5;
+    uint public point06 = 1522454400; // 15.08 etap = 6;
+    uint public point07 = 1522454400; // 31.09 etap = 7;
+
+    uint public partrefund = 100; // refund;
+
+    
+    token public tokenReward;
+    mapping(address => uint256) public balanceOf;
+    bool fundingGoalReached = false;
+    bool crowdsaleClosed = false;
+
+    event GoalReached(address recipient, uint totalAmountRaised);
+    event FundTransfer(address backer, uint amount, bool isContribution);
+
+    /**
+     * Constrctor function
+     *
+     * Setup the owner
+     */
+     
+    address ifSuccessfulSendTo = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
+    uint fundingGoalInEthers = 10;
+    uint durationInMinutes = 10;
+    uint etherCostOfEachToken = 2;
+
+    PalCoin public tokent = new PalCoin();
+    
+    function Crowdsale(
+    ) {
+        beneficiary = ifSuccessfulSendTo;
+        fundingGoal = fundingGoalInEthers * 1 ether;
+        deadline = now + durationInMinutes * 1 minutes;
+        price = etherCostOfEachToken * 1 ether;
+        tokenReward = token(tokent);
+        etap = 1;
+    }
+    
+    function set(uint vest) {
+        etap = vest;
+    }    
+
+    /**
+     * Fallback function
+     *
+     * The function without name is the default function that is called whenever anyone sends funds to a contract
+     */
+    function () payable {
+        require(!crowdsaleClosed);
+        uint amount = msg.value;
+        balanceOf[msg.sender] += amount;
+        amountRaised += amount;
+        tokenReward.transfer(msg.sender, amount / price);
+        FundTransfer(msg.sender, amount, true);
+    }
+
+    modifier afterDeadline() { if (now >= deadline) _; }
+
+    /**
+     * Check if goal was reached
+     *
+     * Checks if the goal or time limit has been reached and ends the campaign
+     */
+    function checkGoalReached() afterDeadline {
+        if (checketap()){
+            fundingGoalReached = true;
+            GoalReached(beneficiary, amountRaised);
+        }
+        crowdsaleClosed = true;
+    }
+
+     * Check etap 
+     *
+     * Checks if etap is true
+     */
+    function checketap() {
+        if (now >= point01 && etap > 1){
+            partrefund = 90;
+            return true;
+        }
+        if (now >= point02 && etap > 2){
+            partrefund = 80;
+            return true;
+        }
+        if (now >= point03 && etap > 3){
+            partrefund = 70;
+            return true;
+        }
+        if (now >= point04 && etap > 4){
+            partrefund = 60;
+            return true;
+        }
+        if (now >= point05 && etap > 5){
+            partrefund = 50;
+            return true;
+        }
+        if (now >= point06 && etap > 6){
+            partrefund = 40;
+            return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * Withdraw the funds
+     *
+     * Checks to see if goal or time limit has been reached, and if so, and the funding goal was reached,
+     * sends the entire amount to the beneficiary. If goal was not reached, each contributor can withdraw
+     * the amount they contributed.
+     */
+    function safeWithdrawal() afterDeadline {
+        if (!fundingGoalReached) {
+            uint amount = balanceOf[msg.sender];
+            balanceOf[msg.sender] = 0;
+            if (amount > 0) {
+                amount = amount * partrefund / 100; // refund by point
+                if (msg.sender.send(amount)) {
+                    FundTransfer(msg.sender, amount, false);
+                } else {
+                    balanceOf[msg.sender] = amount;
+                }
+            }
+        }
+
+        if (fundingGoalReached && beneficiary == msg.sender) {
+            if (beneficiary.send(amountRaised)) {
+                FundTransfer(beneficiary, amountRaised, false);
+            } else {
+                //If we fail to send the funds to beneficiary, unlock funders balance
+                fundingGoalReached = false;
+            }
+        }
+    }
+}
