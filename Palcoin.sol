@@ -209,10 +209,7 @@ contract PalCoin is owned, TokenERC20 {
 
     uint256 public sellPrice;
     uint256 public buyPrice;
-    
-	string public name = 'PalCoin';
-	string public symbol = 'PLC';
-    uint256 public coinsupply = 30000000;    
+
 
     mapping (address => bool) public frozenAccount;
 
@@ -220,7 +217,11 @@ contract PalCoin is owned, TokenERC20 {
     event FrozenFunds(address target, bool frozen);
 
     /* Initializes contract with initial supply tokens to the creator of the contract */
+<<<<<<< HEAD
     function PalCoin() TokenERC20(30000000, "PalCoin", "PLC") public {}
+=======
+    function PalCoin() TokenERC20('30000000', 'PalCoin', 'PLC') public {}
+>>>>>>> d0c879829e07926a70e7e05504f9be255a2d8572
 
     /* Internal transfer, only can be called by this contract */
     function _transfer(address _from, address _to, uint _value) internal {
