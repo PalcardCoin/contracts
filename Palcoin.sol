@@ -209,7 +209,10 @@ contract PalCoin is owned, TokenERC20 {
 
     uint256 public sellPrice;
     uint256 public buyPrice;
-
+    
+	string public name = 'PalCoin';
+	string public symbol = 'PLC';
+    uint256 public coinsupply = 30000000;    
 
     mapping (address => bool) public frozenAccount;
 
@@ -217,11 +220,7 @@ contract PalCoin is owned, TokenERC20 {
     event FrozenFunds(address target, bool frozen);
 
     /* Initializes contract with initial supply tokens to the creator of the contract */
-<<<<<<< HEAD
     function PalCoin() TokenERC20(30000000, "PalCoin", "PLC") public {}
-=======
-    function PalCoin() TokenERC20('30000000', 'PalCoin', 'PLC') public {}
->>>>>>> d0c879829e07926a70e7e05504f9be255a2d8572
 
     /* Internal transfer, only can be called by this contract */
     function _transfer(address _from, address _to, uint _value) internal {
@@ -291,7 +290,7 @@ contract Crowdsale is owned {
     uint public deadlinePre;
     uint public mainprice;
     uint public price;
-    uint public etap; // start;   
+    uint public etap; // start;    
 
     uint256 public coinsupply = 30000000;    
     uint256 public limitPre = 10;    
@@ -340,7 +339,7 @@ contract Crowdsale is owned {
     uint durationInDays = 10;
     uint etherCostOfEachToken =  200000000000000;
 
-    PalCoin public tokent = new PalCoin();   
+    PalCoin public tokent = new PalCoin(); 
     
     function Crowdsale (
     ) {
