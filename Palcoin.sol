@@ -1,5 +1,37 @@
 pragma solidity ^0.4.16;
 
+/**
+ * @title SafeMath
+ * @dev Math operations with safety checks that throw on error
+ */
+library SafeMath {
+    
+  function mul(uint256 a, uint256 b) internal constant returns (uint256) {
+    uint256 c = a * b;
+    assert(a == 0 || c / a == b);
+    return c;
+  }
+ 
+  function div(uint256 a, uint256 b) internal constant returns (uint256) {
+    // assert(b > 0); // Solidity automatically throws when dividing by 0
+    uint256 c = a / b;
+    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+    return c;
+  }
+ 
+  function sub(uint256 a, uint256 b) internal constant returns (uint256) {
+    assert(b <= a);
+    return a - b;
+  }
+ 
+  function add(uint256 a, uint256 b) internal constant returns (uint256) {
+    uint256 c = a + b;
+    assert(c >= a);
+    return c;
+  }
+  
+}
+
 contract owned {
     address public owner;
 
@@ -243,36 +275,58 @@ contract PalCoin is owned, TokenERC20 {
     }
 }
 
-
-pragma solidity ^0.4.16;
-
 interface token {
     function transfer(address receiver, uint amount);
 }
 
-contract Crowdsale {
+contract Crowdsale is owned {
+    
+    using SafeMath for uint256;
+
     address public beneficiary;
     uint public fundingGoal;
     uint public amountRaised;
-    uint public deadline;
+    uint public torenRaised;
+    uint public deadlinePre;
+    uint public mainprice;
     uint public price;
-    uint public etap; // 1 - start; 
+    uint public etap; // start; 
+// temp ###################################################    
+    uint public pnpopwp; // now; 
+// temp ###################################################    
 
-    uint public point01 = 1522454400; // 31.03 etap = 1;
-    uint public point02 = 1522454400; // 31.03 etap = 2;
+    uint256 public coinsupply = 30000000;    
+    uint256 public limitPre = 10;    
+    uint256 public limitICO = 50;    
+
+    uint public point01 = 1521936000; // 25.03 etap = 1;
+    uint public point02 = 1522195200; // 28.03 etap = 2;
     uint public point03 = 1522540800; // 01.04 etap = 3;
-    uint public point04 = 1522454400; // 31.05 etap = 4;
+    uint public point04 = 1527724800; // 31.05 etap = 4;
     uint public point05 = 1530403200; // 01.07 etap = 5;
-    uint public point06 = 1522454400; // 15.08 etap = 6;
-    uint public point07 = 1522454400; // 31.09 etap = 7;
-
+    uint public point06 = 1534291200; // 15.08 etap = 6;
+    uint public point07 = 1538265600; // 30.09 etap = 7;
+    
     uint public partrefund = 100; // refund;
 
+    uint public bonus1 = 50 finney;
+    uint public bonus2 = 500 finney;
+    uint public bonus3 = 1000 finney;
+
+    uint public bonus4 = 10000 finney;
+    uint public bonus5 = 50000 finney;
+    uint public bonus6 = 100000 finney;
+    
+    uint adbonus;
     
     token public tokenReward;
-    mapping(address => uint256) public balanceOf;
-    bool fundingGoalReached = false;
+    mapping(address => uint256) public balancePre;
+    mapping(address => uint256) public bunusesICO;
+    mapping(address => uint256) public balanceICO;
+    bool fundingPreReached = false;
+    bool fundingReached = false;
     bool crowdsaleClosed = false;
+    bool icoClosed = false;
 
     event GoalReached(address recipient, uint totalAmountRaised);
     event FundTransfer(address backer, uint amount, bool isContribution);
@@ -283,88 +337,164 @@ contract Crowdsale {
      * Setup the owner
      */
      
-    address ifSuccessfulSendTo = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
-    uint fundingGoalInEthers = 10;
-    uint durationInMinutes = 10;
-    uint etherCostOfEachToken = 2;
+    address ifSuccessfulSendTo = 0x29066c96382B3747F90A91DdBbA32A1c5c15967E;
+    uint fundingGoalInEthers = 200;
+    uint durationInDays = 10;
+    uint etherCostOfEachToken =  200000000000000;
 
     PalCoin public tokent = new PalCoin();
+// temp ###################################################    
+    function setNow(uint eerr) {
+        pnpopwp = eerr;
+    }
+
+    function setDedline(uint newdeadlinePre) {
+        deadlinePre = newdeadlinePre;
+    }    
+
+    function setBeneficiary(address newadres) {
+        beneficiary = newadres;
+    }    
     
-    function Crowdsale(
+    function setPoin(uint npoint01, uint npoint02, uint npoint03, uint npoint04, uint npoint05, uint npoint06, uint npoint07) public {
+        point01 = npoint01;
+        point02 = npoint02;
+        point03 = npoint03;
+        point04 = npoint04;
+        point05 = npoint05;
+        point06 = npoint06;
+        point07 = npoint07;
+    }
+    
+    function getEthbalance(address adr) public constant returns (uint) {
+        return adr.balance;
+    }
+
+// temp ###################################################    
+    
+    function Crowdsale (
     ) {
         beneficiary = ifSuccessfulSendTo;
         fundingGoal = fundingGoalInEthers * 1 ether;
-        deadline = now + durationInMinutes * 1 minutes;
-        price = etherCostOfEachToken * 1 ether;
+        deadlinePre = pnpopwp + durationInDays * 1 days;
+        mainprice = etherCostOfEachToken;
         tokenReward = token(tokent);
-        etap = 1;
-    }
+      }
     
-    function set(uint vest) {
-        etap = vest;
-    }    
-
     /**
      * Fallback function
      *
      * The function without name is the default function that is called whenever anyone sends funds to a contract
      */
     function () payable {
-        require(!crowdsaleClosed);
+        price = mainprice;
+        require(!crowdsaleClosed && !icoClosed);
         uint amount = msg.value;
-        balanceOf[msg.sender] += amount;
+
+        if (pnpopwp < point04) { // preICO
+            uint tokenLimit = limitPre * coinsupply / 100;
+            if (amount > bonus3) {
+                price = price.mul(35).div(100);
+                bunusesICO[msg.sender] = 4;
+            }
+            else if (amount > bonus2) {
+                price = price.mul(40).div(100);
+                bunusesICO[msg.sender] = 3;
+            }
+            else if (amount > bonus1) {
+                price = price.mul(45).div(100);
+                bunusesICO[msg.sender] = 2;
+            }
+        } else { // ICO
+            tokenLimit = limitICO * coinsupply / 100;
+            if (amount > bonus6) {
+                price = price.mul(50).div(100);
+                adbonus = bunusesICO[msg.sender];
+                if (adbonus > 0) {
+                    adbonus = adbonus + 2;
+                    adbonus = adbonus.div(100) + 1;
+                    price = price.mul(adbonus);
+                }
+            }
+            else if (amount > bonus5) {
+                price = price.mul(50).div(100);
+                adbonus = bunusesICO[msg.sender];
+                if (adbonus > 0) {
+                    adbonus = adbonus + 1;
+                    adbonus = adbonus.div(100) + 1;
+                    price = price.mul(adbonus);
+                }
+            }
+            else if (amount > bonus4) {
+                price = price.mul(55).div(100);
+                adbonus = bunusesICO[msg.sender];
+                if (adbonus > 0) {
+                    adbonus = adbonus.div(100) + 1;
+                    price = price.mul(adbonus);
+                }
+            } else {
+                price = price.mul(60).div(100);
+            }
+        } 
+        uint tokenAmount = amount / price;
+        require ((torenRaised + tokenAmount) <= tokenLimit); 
+        if (pnpopwp < point04) { // preICO
+            balancePre[msg.sender] += amount;
+        } else { // ICO
+            balanceICO[msg.sender] += amount;
+        }
         amountRaised += amount;
-        tokenReward.transfer(msg.sender, amount / price);
+        tokenReward.transfer(msg.sender, tokenAmount * 1 ether);
+        torenRaised += tokenAmount;
         FundTransfer(msg.sender, amount, true);
     }
 
-    modifier afterDeadline() { if (now >= deadline) _; }
+    /**
+    * Set point
+    *
+    * Set current point of roadmap
+    */
+    function setPoint(uint inetap) onlyOwner public {
+        etap = inetap;
+    }    
+
+    modifier afterDeadlinePre() { if (pnpopwp >= deadlinePre) _; }
 
     /**
      * Check if goal was reached
      *
      * Checks if the goal or time limit has been reached and ends the campaign
      */
-    function checkGoalReached() afterDeadline {
-        if (checketap()){
-            fundingGoalReached = true;
+    function checkPreReached() onlyOwner afterDeadlinePre public {
+        if (pnpopwp >= point07) {
+            icoClosed = true;
+            fundingReached = true;
             GoalReached(beneficiary, amountRaised);
         }
-        crowdsaleClosed = true;
-    }
-
-     * Check etap 
-     *
-     * Checks if etap is true
-     */
-    function checketap() {
-        if (now >= point01 && etap > 1){
-            partrefund = 90;
-            return true;
+        else if (pnpopwp >= point06 && etap < 6){
+            partrefund = 20;
+            crowdsaleClosed = true;
         }
-        if (now >= point02 && etap > 2){
-            partrefund = 80;
-            return true;
+        else if (pnpopwp >= point05 && etap > 5){ // start ICO
+            crowdsaleClosed = false;
         }
-        if (now >= point03 && etap > 3){
-            partrefund = 70;
-            return true;
-        }
-        if (now >= point04 && etap > 4){
-            partrefund = 60;
-            return true;
-        }
-        if (now >= point05 && etap > 5){
-            partrefund = 50;
-            return true;
-        }
-        if (now >= point06 && etap > 6){
+        else if (pnpopwp >= point03) { // end of PreICO
+            if (etap > 3){
+                fundingPreReached = true;
+                GoalReached(beneficiary, amountRaised);
+            }
             partrefund = 40;
-            return true;
+            crowdsaleClosed = true;
         }
-        return false;
+        else if (pnpopwp >= point02 && etap < 3){
+            partrefund = 50;
+            crowdsaleClosed = true;
+        }
+        else if (pnpopwp >= point01 && etap < 2){
+            partrefund = 70;
+            crowdsaleClosed = true;
+        }
     }
-
 
     /**
      * Withdraw the funds
@@ -373,26 +503,48 @@ contract Crowdsale {
      * sends the entire amount to the beneficiary. If goal was not reached, each contributor can withdraw
      * the amount they contributed.
      */
-    function safeWithdrawal() afterDeadline {
-        if (!fundingGoalReached) {
-            uint amount = balanceOf[msg.sender];
-            balanceOf[msg.sender] = 0;
-            if (amount > 0) {
-                amount = amount * partrefund / 100; // refund by point
-                if (msg.sender.send(amount)) {
-                    FundTransfer(msg.sender, amount, false);
-                } else {
-                    balanceOf[msg.sender] = amount;
+    function safeWithdrawal() afterDeadlinePre {
+        if (crowdsaleClosed || icoClosed) {
+            if (pnpopwp > point06) { // ICO ended
+                if (!fundingReached) {
+                    amount = balanceICO[msg.sender];
+                    balanceICO[msg.sender] = 0;
+                    amount = amount * partrefund / 100; // refund by point
+                    if (amount > 0) {
+                        if (msg.sender.send(amount)) {
+                            FundTransfer(msg.sender, amount, false);
+                        } else {
+                            balanceICO[msg.sender] = amount;
+                        } 
+                    }
+                }
+            } else { // preICO
+                if (!fundingPreReached) {
+                    uint amount = balancePre[msg.sender];
+                    balancePre[msg.sender] = 0;
+                    amount = amount * partrefund / 100; // refund by point
+                    if (amount > 0) {
+                        if (msg.sender.send(amount)) {
+                            FundTransfer(msg.sender, amount, false);
+                        } else {
+                            balancePre[msg.sender] = amount;
+                        } 
+                    }
                 }
             }
-        }
 
-        if (fundingGoalReached && beneficiary == msg.sender) {
-            if (beneficiary.send(amountRaised)) {
-                FundTransfer(beneficiary, amountRaised, false);
-            } else {
-                //If we fail to send the funds to beneficiary, unlock funders balance
-                fundingGoalReached = false;
+            if (beneficiary == msg.sender) {
+                if ((pnpopwp > point04 && pnpopwp < point05) || (pnpopwp > point07 && fundingReached)) {
+                    if (beneficiary.send(this.balance)) {
+                        FundTransfer(beneficiary, amountRaised, false);
+                        if (pnpopwp > point07) {
+                            tokenReward.transfer(beneficiary, (coinsupply - torenRaised) * 1 ether);
+                        }
+                    } else {
+                        //If we fail to send the funds to beneficiary, unlock funders balance
+                        fundingPreReached = false;
+                    }
+                }
             }
         }
     }
