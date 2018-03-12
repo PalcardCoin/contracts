@@ -346,7 +346,7 @@ contract Crowdsale is owned {
     ) {
         beneficiary = ifSuccessfulSendTo;
         fundingGoal = fundingGoalInEthers * 1 ether;
-        deadlinePre = pnpopwp + durationInDays * 1 days;
+        deadlinePre = now + durationInDays * 1 days;
         mainprice = etherCostOfEachToken;
         tokenReward = token(tokent);
       }
@@ -361,7 +361,7 @@ contract Crowdsale is owned {
         require(!crowdsaleClosed && !icoClosed);
         uint amount = msg.value;
 
-        if (pnpopwp < point04) { // preICO
+        if (now < point04) { // preICO
             uint tokenLimit = limitPre * coinsupply / 100;
             if (amount > bonus3) {
                 price = price.mul(35).div(100);
@@ -408,7 +408,7 @@ contract Crowdsale is owned {
         } 
         uint tokenAmount = amount / price;
         require ((torenRaised + tokenAmount) <= tokenLimit); 
-        if (pnpopwp < point04) { // preICO
+        if (now < point04) { // preICO
             balancePre[msg.sender] += amount;
         } else { // ICO
             balanceICO[msg.sender] += amount;
@@ -428,7 +428,7 @@ contract Crowdsale is owned {
         etap = inetap;
     }    
 
-    modifier afterDeadlinePre() { if (pnpopwp >= deadlinePre) _; }
+    modifier afterDeadlinePre() { if (now >= deadlinePre) _; }
 
     /**
      * Check if goal was reached
@@ -436,19 +436,19 @@ contract Crowdsale is owned {
      * Checks if the goal or time limit has been reached and ends the campaign
      */
     function checkPreReached() onlyOwner afterDeadlinePre public {
-        if (pnpopwp >= point07) {
+        if (now >= point07) {
             icoClosed = true;
             fundingReached = true;
             GoalReached(beneficiary, amountRaised);
         }
-        else if (pnpopwp >= point06 && etap < 6){
+        else if (now >= point06 && etap < 6){
             partrefund = 20;
             crowdsaleClosed = true;
         }
-        else if (pnpopwp >= point05 && etap > 5){ // start ICO
+        else if (now >= point05 && etap > 5){ // start ICO
             crowdsaleClosed = false;
         }
-        else if (pnpopwp >= point03) { // end of PreICO
+        else if (now >= point03) { // end of PreICO
             if (etap > 3){
                 fundingPreReached = true;
                 GoalReached(beneficiary, amountRaised);
@@ -456,11 +456,11 @@ contract Crowdsale is owned {
             partrefund = 40;
             crowdsaleClosed = true;
         }
-        else if (pnpopwp >= point02 && etap < 3){
+        else if (now >= point02 && etap < 3){
             partrefund = 50;
             crowdsaleClosed = true;
         }
-        else if (pnpopwp >= point01 && etap < 2){
+        else if (now >= point01 && etap < 2){
             partrefund = 70;
             crowdsaleClosed = true;
         }
@@ -475,7 +475,7 @@ contract Crowdsale is owned {
      */
     function safeWithdrawal() afterDeadlinePre {
         if (crowdsaleClosed || icoClosed) {
-            if (pnpopwp > point06) { // ICO ended
+            if (now > point06) { // ICO ended
                 if (!fundingReached) {
                     amount = balanceICO[msg.sender];
                     balanceICO[msg.sender] = 0;
@@ -504,10 +504,10 @@ contract Crowdsale is owned {
             }
 
             if (beneficiary == msg.sender) {
-                if ((pnpopwp > point04 && pnpopwp < point05) || (pnpopwp > point07 && fundingReached)) {
+                if ((now > point04 && now < point05) || (now > point07 && fundingReached)) {
                     if (beneficiary.send(this.balance)) {
                         FundTransfer(beneficiary, amountRaised, false);
-                        if (pnpopwp > point07) {
+                        if (now > point07) {
                             tokenReward.transfer(beneficiary, (coinsupply - torenRaised) * 1 ether);
                         }
                     } else {
