@@ -291,10 +291,7 @@ contract Crowdsale is owned {
     uint public deadlinePre;
     uint public mainprice;
     uint public price;
-    uint public etap; // start; 
-// temp ###################################################    
-    uint public pnpopwp; // now; 
-// temp ###################################################    
+    uint public etap; // start;   
 
     uint256 public coinsupply = 30000000;    
     uint256 public limitPre = 10;    
@@ -343,35 +340,7 @@ contract Crowdsale is owned {
     uint durationInDays = 10;
     uint etherCostOfEachToken =  200000000000000;
 
-    PalCoin public tokent = new PalCoin();
-// temp ###################################################    
-    function setNow(uint eerr) {
-        pnpopwp = eerr;
-    }
-
-    function setDedline(uint newdeadlinePre) {
-        deadlinePre = newdeadlinePre;
-    }    
-
-    function setBeneficiary(address newadres) {
-        beneficiary = newadres;
-    }    
-    
-    function setPoin(uint npoint01, uint npoint02, uint npoint03, uint npoint04, uint npoint05, uint npoint06, uint npoint07) public {
-        point01 = npoint01;
-        point02 = npoint02;
-        point03 = npoint03;
-        point04 = npoint04;
-        point05 = npoint05;
-        point06 = npoint06;
-        point07 = npoint07;
-    }
-    
-    function getEthbalance(address adr) public constant returns (uint) {
-        return adr.balance;
-    }
-
-// temp ###################################################    
+    PalCoin public tokent = new PalCoin();   
     
     function Crowdsale (
     ) {
