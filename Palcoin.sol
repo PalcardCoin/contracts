@@ -290,7 +290,7 @@ contract Crowdsale is owned {
     uint public deadlinePre;
     uint public mainprice;
     uint public price;
-    uint public etap; // start;    
+    uint public etap; // start; 
 
     uint256 public coinsupply = 30000000;    
     uint256 public limitPre = 10;    
@@ -323,7 +323,7 @@ contract Crowdsale is owned {
     bool fundingPreReached = false;
     bool fundingReached = false;
     bool crowdsaleClosed = false;
-    bool icoClosed = false;
+    bool icoClosed = true;
 
     event GoalReached(address recipient, uint totalAmountRaised);
     event FundTransfer(address backer, uint amount, bool isContribution);
@@ -334,18 +334,26 @@ contract Crowdsale is owned {
      * Setup the owner
      */
      
-    address ifSuccessfulSendTo = 0x29066c96382B3747F90A91DdBbA32A1c5c15967E;
+    address ifSuccessfulSendTo = 0x16DBCFac3b8F69C29CbD76f0201a5DC8e6c8b7F2;
     uint fundingGoalInEthers = 200;
-    uint durationInDays = 10;
+    uint inputdeadline = 1521763200;
     uint etherCostOfEachToken =  200000000000000;
 
-    PalCoin public tokent = new PalCoin(); 
+    PalCoin public tokent = new PalCoin();
+
+    function setPoin(uint npoint04, uint npoint05, uint npoint06, uint npoint07) onlyOwner public {
+        point04 = npoint04;
+        point05 = npoint05;
+        point06 = npoint06;
+        point07 = npoint07;
+    }
+
     
     function Crowdsale (
     ) {
         beneficiary = ifSuccessfulSendTo;
         fundingGoal = fundingGoalInEthers * 1 ether;
-        deadlinePre = now + durationInDays * 1 days;
+        deadlinePre = inputdeadline;
         mainprice = etherCostOfEachToken;
         tokenReward = token(tokent);
       }
@@ -357,26 +365,26 @@ contract Crowdsale is owned {
      */
     function () payable {
         price = mainprice;
-        require(!crowdsaleClosed && !icoClosed);
+        require(!crowdsaleClosed || !icoClosed);
         uint amount = msg.value;
 
-        if (now < point04) { // preICO
+        if (now < point05) { // preICO
             uint tokenLimit = limitPre * coinsupply / 100;
-            if (amount > bonus3) {
+            if (amount >= bonus3) {
                 price = price.mul(35).div(100);
                 bunusesICO[msg.sender] = 4;
             }
-            else if (amount > bonus2) {
+            else if (amount >= bonus2) {
                 price = price.mul(40).div(100);
                 bunusesICO[msg.sender] = 3;
             }
-            else if (amount > bonus1) {
+            else if (amount >= bonus1) {
                 price = price.mul(45).div(100);
                 bunusesICO[msg.sender] = 2;
             }
         } else { // ICO
             tokenLimit = limitICO * coinsupply / 100;
-            if (amount > bonus6) {
+            if (amount >= bonus6) {
                 price = price.mul(50).div(100);
                 adbonus = bunusesICO[msg.sender];
                 if (adbonus > 0) {
@@ -385,7 +393,7 @@ contract Crowdsale is owned {
                     price = price.mul(adbonus);
                 }
             }
-            else if (amount > bonus5) {
+            else if (amount >= bonus5) {
                 price = price.mul(50).div(100);
                 adbonus = bunusesICO[msg.sender];
                 if (adbonus > 0) {
@@ -394,7 +402,7 @@ contract Crowdsale is owned {
                     price = price.mul(adbonus);
                 }
             }
-            else if (amount > bonus4) {
+            else if (amount >= bonus4) {
                 price = price.mul(55).div(100);
                 adbonus = bunusesICO[msg.sender];
                 if (adbonus > 0) {
@@ -442,27 +450,43 @@ contract Crowdsale is owned {
         }
         else if (now >= point06 && etap < 6){
             partrefund = 20;
-            crowdsaleClosed = true;
+            icoClosed = true;
         }
         else if (now >= point05 && etap > 5){ // start ICO
-            crowdsaleClosed = false;
+            icoClosed = false;
         }
-        else if (now >= point03) { // end of PreICO
-            if (etap > 3){
+        else if (now >= point04) { // end of PreICO
+            partrefund = 20;
+            fundingPreReached = true;
+            if (etap < 4){
+                fundingPreReached = false;
+            } else {
                 fundingPreReached = true;
                 GoalReached(beneficiary, amountRaised);
             }
+            crowdsaleClosed = true;
+        }
+        else if (now >= point03){
             partrefund = 40;
-            crowdsaleClosed = true;
+            fundingPreReached = true;
+            if (etap < 3) {
+                fundingPreReached = false;
+            }
         }
-        else if (now >= point02 && etap < 3){
-            partrefund = 50;
-            crowdsaleClosed = true;
+        else if (now >= point02){
+            partrefund = 60;
+            fundingPreReached = true;
+            if (etap < 2) {
+                fundingPreReached = false;
+            }
         }
-        else if (now >= point01 && etap < 2){
-            partrefund = 70;
-            crowdsaleClosed = true;
+        else if (now >= point01 && etap < 1){
+            partrefund = 100;
+            fundingPreReached = false;
+        } else {
+            fundingPreReached = true;
         }
+        crowdsaleClosed = true;
     }
 
     /**
@@ -473,22 +497,20 @@ contract Crowdsale is owned {
      * the amount they contributed.
      */
     function safeWithdrawal() afterDeadlinePre {
-        if (crowdsaleClosed || icoClosed) {
-            if (now > point06) { // ICO ended
-                if (!fundingReached) {
-                    amount = balanceICO[msg.sender];
-                    balanceICO[msg.sender] = 0;
-                    amount = amount * partrefund / 100; // refund by point
-                    if (amount > 0) {
-                        if (msg.sender.send(amount)) {
-                            FundTransfer(msg.sender, amount, false);
-                        } else {
-                            balanceICO[msg.sender] = amount;
-                        } 
-                    }
+        if (!fundingReached) {
+            if (now > point06 && icoClosed) { // ICO ended
+                amount = balanceICO[msg.sender];
+                balanceICO[msg.sender] = 0;
+                amount = amount * partrefund / 100; // refund by point
+                if (amount > 0) {
+                    if (msg.sender.send(amount)) {
+                        FundTransfer(msg.sender, amount, false);
+                    } else {
+                        balanceICO[msg.sender] = amount;
+                    } 
                 }
             } else { // preICO
-                if (!fundingPreReached) {
+                if (crowdsaleClosed && !fundingPreReached) {
                     uint amount = balancePre[msg.sender];
                     balancePre[msg.sender] = 0;
                     amount = amount * partrefund / 100; // refund by point
@@ -501,9 +523,8 @@ contract Crowdsale is owned {
                     }
                 }
             }
-
-            if (beneficiary == msg.sender) {
-                if ((now > point04 && now < point05) || (now > point07 && fundingReached)) {
+            if (beneficiary == msg.sender) { // take away all
+                if ((now > point04 && now < point05) || (now > point07)) {
                     if (beneficiary.send(this.balance)) {
                         FundTransfer(beneficiary, amountRaised, false);
                         if (now > point07) {
@@ -515,6 +536,17 @@ contract Crowdsale is owned {
                     }
                 }
             }
-        }
+        } else { // compensation
+            if (beneficiary == msg.sender) {
+                if (partrefund < 100) {
+                    uint compensation = amountRaised * (100 - partrefund - 2);
+                    if ((compensation - amountRaised * 2 / 100)  > (amountRaised - this.balance)) {
+                        if (beneficiary.send(compensation)) {
+                            FundTransfer(beneficiary, amountRaised, false);
+                        }
+                    }
+                }
+            }
+        }    
     }
 }
